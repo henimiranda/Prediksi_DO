@@ -7,17 +7,28 @@ import psycopg2
 
 import os
 from dotenv import load_dotenv
+import streamlit as st
 
 # Load environment variables from .env file (if it exists)
 load_dotenv()
 
+def get_config(key, default_val):
+    # Coba baca dari Streamlit Secrets (untuk Cloud)
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    # Jika gagal/tidak ada, baca dari os.getenv (untuk Lokal)
+    return os.getenv(key, default_val)
+
 # ── Konfigurasi Database ──────────────────────────────────────────────────────
 DB_CONFIG = {
-    "host":     os.getenv("DB_HOST", "localhost"),
-    "database": os.getenv("DB_NAME", "prediksi_do"),
-    "user":     os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", "12345"),
-    "port":     os.getenv("DB_PORT", "5432"),
+    "host":     get_config("DB_HOST", "localhost"),
+    "database": get_config("DB_NAME", "prediksi_do"),
+    "user":     get_config("DB_USER", "postgres"),
+    "password": get_config("DB_PASSWORD", "12345"),
+    "port":     get_config("DB_PORT", "5432"),
 }
 
 # Nama tabel utama di PostgreSQL
