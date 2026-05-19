@@ -7,6 +7,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ── Inject Streamlit Secrets ke os.environ (untuk Streamlit Cloud) ────────────
+# Ini memastikan config.database bisa membaca variabel via os.getenv()
+try:
+    for _k, _v in st.secrets.items():
+        if _k not in os.environ:
+            os.environ[_k] = str(_v)
+except Exception:
+    pass  # Tidak apa-apa jika berjalan di lokal tanpa secrets
+
 # Add root directory to sys.path to allow imports from backend and config
 root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if root_path not in sys.path:
