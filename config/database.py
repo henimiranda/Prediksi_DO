@@ -16,7 +16,14 @@ TABLE_NAME = "mahasiswa"
 
 
 def _get(key, default=""):
-    """Baca dari os.environ (yang sudah diisi dari st.secrets di main.py)."""
+    """Baca dari st.secrets (Cloud) → os.environ (Lokal) → default."""
+    try:
+        import streamlit as st
+        val = st.secrets.get(key, None)
+        if val is not None:
+            return str(val)
+    except Exception:
+        pass
     return os.environ.get(key, default)
 
 
