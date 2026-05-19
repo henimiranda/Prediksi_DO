@@ -231,6 +231,10 @@ else:
             st.warning("📄 CSV Mode (Offline)")
             if DB_ERROR:
                 st.caption(f"⚠️ {DB_ERROR}")
+            try:
+                st.caption(f"🔑 Keys in Secrets: {list(st.secrets.keys())}")
+            except Exception as se_err:
+                st.caption(f"🔑 Secrets Error: {se_err}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── PAGE ROUTING ──────────────────────────────────────────────────────────
