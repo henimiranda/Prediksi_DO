@@ -7,6 +7,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# ── Anti-flicker: paksa background gelap sebelum CSS Streamlit dimuat ────────
+st.markdown("""
+<style>
+html, body, [data-testid="stApp"] {
+    background-color: #0b0e14 !important;
+    transition: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ── Inject Streamlit Secrets ke os.environ (untuk Streamlit Cloud) ────────────
 # Ini memastikan config.database bisa membaca variabel via os.getenv()
 try:
@@ -206,6 +216,7 @@ if not st.session_state.logged_in:
                     if st.button("🔓 Buka Kunci", use_container_width=True):
                         if input_pin == CORRECT_PIN:
                             st.session_state.logged_in = True
+                            st.session_state.oauth_email = None  # Bersihkan agar tidak overlay
                             st.rerun()
                         else:
                             st.error("❌ PIN Salah!")
@@ -239,7 +250,7 @@ else:
             
             if st.button(f"{icon}  {label}", key=f"nav_{label}", use_container_width=True):
                 st.session_state.active_page = label
-                st.rerun()
+                # Tidak perlu st.rerun() eksplisit — Streamlit auto-rerun setelah state change
             
             if is_active:
                 st.markdown("</div>", unsafe_allow_html=True)
