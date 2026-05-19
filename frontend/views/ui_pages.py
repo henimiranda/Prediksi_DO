@@ -156,9 +156,12 @@ def page_predict(engine, save_prediction_to_db):
         if prob is not None:
             color = "#f43f5e" if prob>0.7 else "#f59e0b" if prob>0.4 else "#10b981"
             label = "🔴 BAHAYA" if prob>0.7 else "🟡 WASPADA" if prob>0.4 else "🟢 AMAN"
-            save_prediction_to_db([{'nim':'-','angkatan':angkatan,'semester':semester,'ipk':ipk,
-                'sks_lulus':sks,'mengulang':mengulang,'absensi':absensi,'status_pembayaran':bv,
-                'risiko_persen':round(prob*100,1),'status_risiko':label,'model_ai':model_p,'tipe_prediksi':'individu'}])
+            try:
+                save_prediction_to_db([{'nim':'-','angkatan':angkatan,'semester':semester,'ipk':ipk,
+                    'sks_lulus':sks,'mengulang':mengulang,'absensi':absensi,'status_pembayaran':bv,
+                    'risiko_persen':round(prob*100,1),'status_risiko':label,'model_ai':model_p,'tipe_prediksi':'individu'}])
+            except Exception:
+                pass  # Prediksi tetap tampil meski simpan DB gagal
 
             _,mid,_ = st.columns([1,2,1])
             with mid:
@@ -219,8 +222,11 @@ def page_batch(engine, save_prediction_to_db):
                     'sks_lulus':int(row.get('SKS_Lulus',row.get('sks_lulus',0))),'mengulang':int(row.get('Mengulang',row.get('mengulang',0))),
                     'absensi':float(row.get('Absensi',row.get('absensi',0))),'status_pembayaran':int(row.get('Status_Pembayaran',row.get('status_pembayaran',0))),
                     'risiko_persen':round(p*100,1),'status_risiko':sl,'model_ai':bm,'tipe_prediksi':'batch'})
-            save_prediction_to_db(recs)
-            st.success(f"✅ {len(recs)} hasil tersimpan!")
+            try:
+                save_prediction_to_db(recs)
+                st.success(f"✅ {len(recs)} hasil prediksi selesai!")
+            except Exception:
+                st.success(f"✅ {len(recs)} hasil prediksi selesai!")
             st.download_button("📥 DOWNLOAD HASIL",df_b.to_csv(index=False).encode('utf-8'),"Hasil_Prediksi.csv","text/csv")
 
 def page_history(load_prediction_history, DB_AVAILABLE):
@@ -257,9 +263,12 @@ def page_history(load_prediction_history, DB_AVAILABLE):
         
         st.markdown("---")
         if st.button("🗑️ Hapus Semua Riwayat"):
-            from config.database import get_connection
-            conn=get_connection(); cur=conn.cursor()
-            cur.execute("TRUNCATE TABLE hasil_prediksi RESTART IDENTITY")
-            conn.commit(); cur.close(); conn.close()
-            st.success("✅ Riwayat dihapus!"); st.rerun()
+            try:
+                from backend.core.ml_logic import get_connection
+                conn=get_connection(); cur=conn.cursor()
+                cur.execute("TRUNCATE TABLE hasil_prediksi RESTART IDENTITY")
+                conn.commit(); cur.close(); conn.close()
+                st.success("✅ Riwayat dihapus!"); st.rerun()
+            except Exception as e:
+                st.error(f"Gagal menghapus: {e}")
     else: st.info("💭 Belum ada riwayat.")
