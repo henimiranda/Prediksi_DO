@@ -27,8 +27,10 @@ st.set_page_config(page_title="EduPredict AI", page_icon="🎓", layout="wide")
 
 # Check Database Availability
 DB_ERROR = None
+DB_HOST_USED = "(unknown)"
 try:
-    from config.database import get_connection
+    from config.database import get_connection, _get_config
+    DB_HOST_USED = _get_config("DB_HOST", "localhost")
     conn = get_connection()
     DB_AVAILABLE = conn is not None
     if conn: conn.close()
@@ -231,8 +233,9 @@ else:
             st.warning("📄 CSV Mode (Offline)")
             if DB_ERROR:
                 st.caption(f"⚠️ {DB_ERROR}")
+            st.caption(f"🖥️ DB_HOST used: `{DB_HOST_USED}`")
             try:
-                st.caption(f"🔑 Keys in Secrets: {list(st.secrets.keys())}")
+                st.caption(f"🔑 Keys: {list(st.secrets.keys())}")
             except Exception as se_err:
                 st.caption(f"🔑 Secrets Error: {se_err}")
         st.markdown("</div>", unsafe_allow_html=True)
