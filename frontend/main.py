@@ -252,15 +252,7 @@ else:
             st.rerun()
         
         if DB_AVAILABLE: st.success("🐘 PostgreSQL Connected")
-        else: 
-            st.warning("📄 CSV Mode (Offline)")
-            if DB_ERROR:
-                st.caption(f"⚠️ {DB_ERROR}")
-            st.caption(f"🖥️ DB_HOST used: `{DB_HOST_USED}`")
-            try:
-                st.caption(f"🔑 Keys: {list(st.secrets.keys())}")
-            except Exception as se_err:
-                st.caption(f"🔑 Secrets Error: {se_err}")
+        else: st.warning("📄 CSV Mode (Offline)")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── PAGE ROUTING ──────────────────────────────────────────────────────────

@@ -15,6 +15,9 @@ __pycache__/
 # Streamlit
 .streamlit/
 
-# Models
-# (Hanya abaikan jika Anda tidak ingin mengupload model ke GitHub, tapi biasanya untuk deploy Streamlit gratis, model perlu diupload)
+# Models (diupload ke GitHub agar Streamlit Cloud bisa load model)
 # models/*.pkl
+
+# File tidak perlu
+cek_akurasi.py
+backend/package-lock.json
