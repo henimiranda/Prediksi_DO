@@ -6,14 +6,43 @@ from sklearn.model_selection import train_test_split, cross_validate
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
-# Import database functions from config (we keep existing config for now)
-try:
-    from config.database import get_engine as get_db_engine, TABLE_NAME, get_connection
-except ImportError:
-    # Fallback if config is missing during refactor
-    def get_db_engine(): return None
-    TABLE_NAME = "mahasiswa"
-    def get_connection(): return None
+import psycopg2
+from sqlalchemy import create_engine
+
+TABLE_NAME = "mahasiswa"
+
+def _db_get(key, default=""):
+    """Baca config dari st.secrets (Cloud) atau os.environ (Lokal)."""
+    try:
+        val = st.secrets.get(key, None)
+        if val is not None:
+            return str(val)
+    except Exception:
+        pass
+    return os.environ.get(key, default)
+
+def get_connection():
+    """Buat koneksi psycopg2 langsung dari st.secrets."""
+    return psycopg2.connect(
+        host=_db_get("DB_HOST", "localhost"),
+        database=_db_get("DB_NAME", "prediksi_do"),
+        user=_db_get("DB_USER", "postgres"),
+        password=_db_get("DB_PASSWORD", ""),
+        port=_db_get("DB_PORT", "5432"),
+        sslmode="require",
+        connect_timeout=10
+    )
+
+def get_db_engine():
+    """Buat SQLAlchemy engine dari st.secrets."""
+    h = _db_get("DB_HOST", "localhost")
+    d = _db_get("DB_NAME", "prediksi_do")
+    u = _db_get("DB_USER", "postgres")
+    p = _db_get("DB_PASSWORD", "")
+    port = _db_get("DB_PORT", "5432")
+    url = f"postgresql+psycopg2://{u}:{p}@{h}:{port}/{d}?sslmode=require"
+    return create_engine(url)
+
 
 DATA_PATH = "backend/data/data_mahasiswa_v2.csv"
 MODEL_DIR = "models"
