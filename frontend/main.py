@@ -34,20 +34,29 @@ from backend.core.ml_logic import (
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="EduPredict AI", page_icon="🎓", layout="wide")
 
-# Check Database Availability
-DB_ERROR = None
-DB_HOST_USED = "(unknown)"
-try:
-    # Baca DB_HOST untuk debug
+# ── Helper: ambil config dari st.secrets atau os.environ ─────────────────────
+def _cfg(key, default=""):
     try:
-        DB_HOST_USED = st.secrets.get("DB_HOST", os.getenv("DB_HOST", "localhost"))
+        return st.secrets.get(key, os.environ.get(key, default))
     except Exception:
-        DB_HOST_USED = os.getenv("DB_HOST", "localhost")
+        return os.environ.get(key, default)
 
-    from config.database import get_connection
-    conn = get_connection()
-    DB_AVAILABLE = conn is not None
-    if conn: conn.close()
+# ── Check Database Availability (langsung pakai psycopg2, bypass database.py) ─
+DB_ERROR = None
+DB_HOST_USED = _cfg("DB_HOST", "localhost")
+try:
+    import psycopg2 as _pg2
+    _conn = _pg2.connect(
+        host=DB_HOST_USED,
+        database=_cfg("DB_NAME", "prediksi_do"),
+        user=_cfg("DB_USER", "postgres"),
+        password=_cfg("DB_PASSWORD", ""),
+        port=_cfg("DB_PORT", "5432"),
+        sslmode="require",
+        connect_timeout=10
+    )
+    DB_AVAILABLE = True
+    _conn.close()
 except Exception as e:
     DB_AVAILABLE = False
     DB_ERROR = str(e)
