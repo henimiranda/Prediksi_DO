@@ -41,25 +41,26 @@ def _cfg(key, default=""):
     except Exception:
         return os.environ.get(key, default)
 
-# ── Check Database Availability (langsung pakai psycopg2, bypass database.py) ─
-DB_ERROR = None
-DB_HOST_USED = _cfg("DB_HOST", "localhost")
-try:
-    import psycopg2 as _pg2
-    _conn = _pg2.connect(
-        host=DB_HOST_USED,
-        database=_cfg("DB_NAME", "prediksi_do"),
-        user=_cfg("DB_USER", "postgres"),
-        password=_cfg("DB_PASSWORD", ""),
-        port=_cfg("DB_PORT", "5432"),
-        sslmode="require",
-        connect_timeout=10
-    )
-    DB_AVAILABLE = True
-    _conn.close()
-except Exception as e:
-    DB_AVAILABLE = False
-    DB_ERROR = str(e)
+# ── Check Database Availability (cached 5 menit agar tidak jalan tiap klik) ──
+@st.cache_resource(ttl=300)
+def check_db_connection():
+    try:
+        import psycopg2 as _pg2
+        _conn = _pg2.connect(
+            host=_cfg("DB_HOST", "localhost"),
+            database=_cfg("DB_NAME", "prediksi_do"),
+            user=_cfg("DB_USER", "postgres"),
+            password=_cfg("DB_PASSWORD", ""),
+            port=_cfg("DB_PORT", "5432"),
+            sslmode="require",
+            connect_timeout=10
+        )
+        _conn.close()
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+DB_AVAILABLE, DB_ERROR = check_db_connection()
 
 # ── ML ENGINE ─────────────────────────────────────────────────────────────────
 @st.cache_resource

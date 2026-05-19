@@ -12,8 +12,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Streamlit
-.streamlit/
+# Streamlit — izinkan config.toml, abaikan secrets saja
+.streamlit/secrets.toml
+!.streamlit/config.toml
 
 # Models (diupload ke GitHub agar Streamlit Cloud bisa load model)
 # models/*.pkl
