@@ -29,8 +29,13 @@ st.set_page_config(page_title="EduPredict AI", page_icon="🎓", layout="wide")
 DB_ERROR = None
 DB_HOST_USED = "(unknown)"
 try:
-    from config.database import get_connection, _get_config
-    DB_HOST_USED = _get_config("DB_HOST", "localhost")
+    # Baca DB_HOST untuk debug
+    try:
+        DB_HOST_USED = st.secrets.get("DB_HOST", os.getenv("DB_HOST", "localhost"))
+    except Exception:
+        DB_HOST_USED = os.getenv("DB_HOST", "localhost")
+
+    from config.database import get_connection
     conn = get_connection()
     DB_AVAILABLE = conn is not None
     if conn: conn.close()
