@@ -152,7 +152,7 @@ if not st.session_state.logged_in:
             # Tombol Login Google
             st.markdown(f"""
             <div style="display:flex; justify-content:center; margin-top: 2rem;">
-                <a href="{auth_url}" target="_self" class="google-btn">
+                <a href="{auth_url}" target="_top" class="google-btn">
                     <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" style="margin-right:10px;">
                     Lanjutkan dengan Google
                 </a>
