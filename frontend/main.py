@@ -26,13 +26,15 @@ from backend.core.ml_logic import (
 st.set_page_config(page_title="EduPredict AI", page_icon="🎓", layout="wide")
 
 # Check Database Availability
+DB_ERROR = None
 try:
     from config.database import get_connection
     conn = get_connection()
     DB_AVAILABLE = conn is not None
     if conn: conn.close()
-except:
+except Exception as e:
     DB_AVAILABLE = False
+    DB_ERROR = str(e)
 
 # ── ML ENGINE ─────────────────────────────────────────────────────────────────
 @st.cache_resource
@@ -225,7 +227,10 @@ else:
             st.rerun()
         
         if DB_AVAILABLE: st.success("🐘 PostgreSQL Connected")
-        else: st.warning("📄 CSV Mode (Offline)")
+        else: 
+            st.warning("📄 CSV Mode (Offline)")
+            if DB_ERROR:
+                st.caption(f"⚠️ {DB_ERROR}")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── PAGE ROUTING ──────────────────────────────────────────────────────────
