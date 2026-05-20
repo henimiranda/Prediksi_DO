@@ -41,6 +41,19 @@ from backend.core.ml_logic import (
     save_prediction_to_db, load_prediction_history
 )
 
+# ── Preload Database in Background Thread ────────────────────────────────────
+import threading
+def preload_db():
+    try:
+        load_from_db()
+        load_prediction_history()
+    except Exception:
+        pass
+
+if 'db_preloaded' not in st.session_state:
+    st.session_state.db_preloaded = True
+    threading.Thread(target=preload_db, daemon=True).start()
+
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="EduPredict AI", page_icon="🎓", layout="wide")
 
@@ -220,7 +233,7 @@ if not st.session_state.logged_in:
                         st.session_state.oauth_email = None
                         st.rerun()
                     
-                    if btn_buka or (input_pin and len(input_pin) == 6 and input_pin == CORRECT_PIN):
+                    if btn_buka or (input_pin and len(input_pin) == 6):
                         if input_pin == CORRECT_PIN:
                             login_placeholder.empty()  # Clear login screen instantly!
                             st.session_state.logged_in = True
