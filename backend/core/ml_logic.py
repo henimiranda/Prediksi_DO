@@ -49,6 +49,7 @@ MODEL_DIR = "models"
 FEATURE_COLS = ['Angkatan','Semester','IPK','SKS_Lulus','Mengulang','Absensi','Status_Pembayaran']
 TARGET_COL   = 'Status_DO'
 
+@st.cache_data(ttl=300)
 def load_from_db():
     engine = get_db_engine()
     if engine is None: return None
@@ -74,6 +75,7 @@ def save_to_db(df):
         vc = ['nim','angkatan','semester','ipk','sks_lulus','mengulang','absensi','status_pembayaran','status_do']
         ds = ds[[c for c in vc if c in ds.columns]]
         ds.to_sql(TABLE_NAME, engine, if_exists='replace', index=False)
+        load_from_db.clear()  # Clear cache after update
         return True
     except: return False
 
@@ -93,9 +95,11 @@ def save_prediction_to_db(data_list):
                  float(d.get('risiko_persen',0)),str(d.get('status_risiko','')),
                  str(d.get('model_ai','')),str(d.get('tipe_prediksi','individu'))))
         conn.commit(); cur.close(); conn.close()
+        load_prediction_history.clear()  # Clear cache after prediction is saved
         return True
     except: return False
 
+@st.cache_data(ttl=300)
 def load_prediction_history():
     engine = get_db_engine()
     if engine is None: return None

@@ -98,8 +98,8 @@ if not st.session_state.logged_in:
 
     st.markdown("""
     <style>
-    /* Ubah kolom tengah menjadi sebuah 'Card' atau kotak besar */
-    div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:nth-child(2) {
+    /* Ubah kolom tengah menjadi sebuah 'Card' atau kotak besar (hanya pada layout 3-kolom) */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) {
         background: rgba(255, 255, 255, 0.03);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.08);
@@ -209,17 +209,21 @@ if not st.session_state.logged_in:
                 st.markdown("<br>", unsafe_allow_html=True)
                 col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
-                    if st.button("⬅ Batal", use_container_width=True):
-                        st.session_state.oauth_email = None
-                        st.rerun()
+                    btn_batal = st.button("⬅ Batal", use_container_width=True)
                 with col_btn2:
-                    if st.button("🔓 Buka Kunci", use_container_width=True):
-                        if input_pin == CORRECT_PIN:
-                            st.session_state.logged_in = True
-                            st.session_state.oauth_email = None  # Bersihkan agar tidak overlay
-                            st.rerun()
-                        else:
-                            st.error("❌ PIN Salah!")
+                    btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
+                
+                if btn_batal:
+                    st.session_state.oauth_email = None
+                    st.rerun()
+                
+                if btn_buka or (input_pin and len(input_pin) == 6 and input_pin == CORRECT_PIN):
+                    if input_pin == CORRECT_PIN:
+                        st.session_state.logged_in = True
+                        st.session_state.oauth_email = None  # Bersihkan agar tidak overlay
+                        st.rerun()
+                    else:
+                        st.error("❌ PIN Salah!")
                             
     st.markdown("<p style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
 

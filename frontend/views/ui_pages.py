@@ -264,10 +264,11 @@ def page_history(load_prediction_history, DB_AVAILABLE):
         st.markdown("---")
         if st.button("🗑️ Hapus Semua Riwayat"):
             try:
-                from backend.core.ml_logic import get_connection
+                from backend.core.ml_logic import get_connection, load_prediction_history
                 conn=get_connection(); cur=conn.cursor()
                 cur.execute("TRUNCATE TABLE hasil_prediksi RESTART IDENTITY")
                 conn.commit(); cur.close(); conn.close()
+                load_prediction_history.clear()  # Clear cache after deleting history
                 st.success("✅ Riwayat dihapus!"); st.rerun()
             except Exception as e:
                 st.error(f"Gagal menghapus: {e}")

@@ -229,5 +229,18 @@ button[data-testid="stSidebarCollapseButton"] {
 .result-pct { font-size: 4rem; font-weight: 800; }
 .result-label { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
 .result-sub { font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* Reset the login card styling on columns if any style leaked from previous runs */
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    background: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Hide login background and orbs instantly when entering main dashboard */
+.login-bg, .orb {
+    display: none !important;
+}
 </style>
 """
