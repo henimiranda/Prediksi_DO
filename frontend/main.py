@@ -31,7 +31,7 @@ root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if root_path not in sys.path:
     sys.path.insert(0, root_path)
 
-from frontend.assets.styles import LOGIN_CSS, MAIN_CSS
+from frontend.assets.styles import MAIN_CSS
 from frontend.views.ui_pages import (
     page_dashboard, page_data, page_predict, 
     page_batch, page_history
@@ -103,36 +103,23 @@ MENU_ITEMS = [
 ]
 
 # ── LOGIN PAGE ────────────────────────────────────────────────────────────────
-login_placeholder = st.empty()
-
 if not st.session_state.logged_in:
-    with login_placeholder.container():
-        st.markdown(LOGIN_CSS, unsafe_allow_html=True)
-        st.markdown("""<div class='login-bg'>
-            <div class='orb orb-1'></div><div class='orb orb-2'></div><div class='orb orb-3'></div>
-        </div>""", unsafe_allow_html=True)
-
-        st.markdown("""
-        <style>
-        /* Ubah kolom tengah menjadi sebuah 'Card' atau kotak besar (hanya pada layout 3-kolom) */
-        div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 1.5rem;
-            padding: 3rem 2rem;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        _, col_c, _ = st.columns([1, 1.5, 1])
-        with col_c:
-            st.markdown("<div style='height:2vh'></div>", unsafe_allow_html=True)
+    _, col_c, _ = st.columns([1, 1.8, 1])
+    with col_c:
+        st.markdown("<div style='height:8vh'></div>", unsafe_allow_html=True)
+        
+        with st.container(border=True):
+            st.markdown("""
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">🎓</div>
+                <h2 style="margin: 0 0 0.5rem 0; color: white; font-weight: 800; font-family: sans-serif;">EduPredict AI</h2>
+                <p style="color: #94a3b8; font-size: 0.95rem; margin: 0;">Sistem Prediksi Risiko Drop Out Mahasiswa</p>
+            </div>
+            """, unsafe_allow_html=True)
             
             # --- Konfigurasi Admin ---
-            ALLOWED_EMAIL = "henimiranda9@gmail.com" # Ganti dengan Email Google Asli Anda
-            CORRECT_PIN = "123456" # Ganti dengan PIN 6 digit pilihan Anda
+            ALLOWED_EMAIL = "henimiranda9@gmail.com"
+            CORRECT_PIN = "123456"
             
             # --- Kredensial Google OAuth Asli ---
             CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
@@ -145,7 +132,6 @@ if not st.session_state.logged_in:
 
             query_params = st.query_params
             
-            # Jika ada parameter 'code' dari Google, tukarkan dengan token (Real Flow)
             if "code" in query_params and not st.session_state.oauth_email:
                 auth_code = query_params["code"]
                 token_url = "https://oauth2.googleapis.com/token"
@@ -157,13 +143,11 @@ if not st.session_state.logged_in:
                     "grant_type": "authorization_code"
                 }
                 try:
-                    # 1. Dapatkan Token
                     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
                     token_res = requests.post(token_url, data=data, headers=headers, verify=False, timeout=30)
                     token_json = token_res.json()
                     if "access_token" in token_json:
                         access_token = token_json["access_token"]
-                        # 2. Ambil Info User
                         user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
                         headers = {"Authorization": f"Bearer {access_token}"}
                         user_res = requests.get(user_info_url, headers=headers, verify=False, timeout=30)
@@ -180,20 +164,9 @@ if not st.session_state.logged_in:
                 except Exception as e:
                     st.error(f"Terjadi kesalahan koneksi OAuth: {e}")
                 
-                # Bersihkan URL parameter
                 st.query_params.clear()
 
-            # Render Konten Card (Logo & Judul)
-            st.markdown(f"""
-            <div style="text-align: center;">
-                <div class="login-logo">🎓</div>
-                <h1 class="login-title">EduPredict AI</h1>
-                <p class="login-subtitle">Sistem Prediksi Risiko Drop Out Mahasiswa</p>
-            </div>
-            """, unsafe_allow_html=True)
-
             if not st.session_state.oauth_email:
-                # Buat URL Otorisasi Asli
                 auth_url = (
                     "https://accounts.google.com/o/oauth2/v2/auth?"
                     f"client_id={CLIENT_ID}&"
@@ -203,10 +176,24 @@ if not st.session_state.logged_in:
                     "prompt=select_account"
                 )
                 
-                # Tombol Login Google
                 st.markdown(f"""
-                <div style="display:flex; justify-content:center; margin-top: 2rem;">
-                    <a href="{auth_url}" target="_blank" class="google-btn">
+                <div style="display:flex; justify-content:center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                    <a href="{auth_url}" target="_blank" style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        background-color: #ffffff;
+                        color: #1f2937;
+                        font-weight: 600;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        width: 100%;
+                        max-width: 280px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        border: 1px solid #e2e8f0;
+                        font-family: sans-serif;
+                    ">
                         <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" style="margin-right:10px;">
                         Lanjutkan dengan Google
                     </a>
@@ -214,39 +201,34 @@ if not st.session_state.logged_in:
                 """, unsafe_allow_html=True)
                 
             else:
-                # PIN Mode UI
-                st.markdown(f"<p class='login-user-info' style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-top:-1.5rem;'>Masuk sebagai: <b>{st.session_state.oauth_email}</b></p>", unsafe_allow_html=True)
-                st.markdown("<h3 class='login-pin-header' style='text-align:center; color:white; letter-spacing: 2px; margin-top: 1rem; margin-bottom:1rem;'>Masukkan PIN</h3>", unsafe_allow_html=True)
+                st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{st.session_state.oauth_email}</b></p>", unsafe_allow_html=True)
+                st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Masukkan PIN</h4>", unsafe_allow_html=True)
                 
-                _, pin_col, _ = st.columns([1, 4, 1])
-                with pin_col:
-                    input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
-                    
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    col_btn1, col_btn2 = st.columns(2)
-                    with col_btn1:
-                        btn_batal = st.button("⬅ Batal", use_container_width=True)
-                    with col_btn2:
-                        btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
-                    
-                    if btn_batal:
+                input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
+                
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                col_btn1, col_btn2 = st.columns(2)
+                with col_btn1:
+                    btn_batal = st.button("⬅ Batal", use_container_width=True)
+                with col_btn2:
+                    btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
+                
+                if btn_batal:
+                    st.session_state.oauth_email = None
+                    st.rerun()
+                
+                if btn_buka or (input_pin and len(input_pin) == 6):
+                    if input_pin == CORRECT_PIN:
+                        st.session_state.logged_in = True
                         st.session_state.oauth_email = None
                         st.rerun()
-                    
-                    if btn_buka or (input_pin and len(input_pin) == 6):
-                        if input_pin == CORRECT_PIN:
-                            login_placeholder.empty()  # Clear login screen instantly!
-                            st.session_state.logged_in = True
-                            st.session_state.oauth_email = None  # Bersihkan agar tidak overlay
-                            st.rerun()
-                        else:
-                            st.error("❌ PIN Salah!")
+                    else:
+                        st.error("❌ PIN Salah!")
                                 
-        st.markdown("<p class='login-footer' style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
 
 # ── MAIN APP WITH SIDEBAR ─────────────────────────────────────────────────────
 else:
-    login_placeholder.empty()  # Force clear any remaining elements in the login placeholder to avoid Streamlit ghost widgets
     st.markdown(MAIN_CSS, unsafe_allow_html=True)
     engine = get_engine()
 
