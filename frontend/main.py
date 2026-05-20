@@ -246,6 +246,7 @@ if not st.session_state.logged_in:
 
 # ── MAIN APP WITH SIDEBAR ─────────────────────────────────────────────────────
 else:
+    login_placeholder.empty()  # Force clear any remaining elements in the login placeholder to avoid Streamlit ghost widgets
     st.markdown(MAIN_CSS, unsafe_allow_html=True)
     engine = get_engine()
 
