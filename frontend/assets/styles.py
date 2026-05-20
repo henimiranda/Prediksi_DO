@@ -243,9 +243,11 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     display: none !important;
 }
 
-/* Hide all text inputs and buttons inside 3-column layouts when in main app (to target ghost PIN inputs and buttons) */
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) div[data-testid="stTextInput"],
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) button {
+/* Force hide any column containing login components to remove the ghost PIN form and buttons (bypassing Streamlit layout wrapper changes) */
+div[data-testid="column"]:has(.login-logo),
+div[data-testid="column"]:has(.login-title),
+div[data-testid="column"]:has(.login-user-info),
+div[data-testid="column"]:has(.login-pin-header) {
     display: none !important;
 }
 </style>
