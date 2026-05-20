@@ -215,8 +215,8 @@ if not st.session_state.logged_in:
                 
             else:
                 # PIN Mode UI
-                st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-top:-1.5rem;'>Masuk sebagai: <b>{st.session_state.oauth_email}</b></p>", unsafe_allow_html=True)
-                st.markdown("<h3 style='text-align:center; color:white; letter-spacing: 2px; margin-top: 1rem; margin-bottom:1rem;'>Masukkan PIN</h3>", unsafe_allow_html=True)
+                st.markdown(f"<p class='login-user-info' style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-top:-1.5rem;'>Masuk sebagai: <b>{st.session_state.oauth_email}</b></p>", unsafe_allow_html=True)
+                st.markdown("<h3 class='login-pin-header' style='text-align:center; color:white; letter-spacing: 2px; margin-top: 1rem; margin-bottom:1rem;'>Masukkan PIN</h3>", unsafe_allow_html=True)
                 
                 _, pin_col, _ = st.columns([1, 4, 1])
                 with pin_col:
@@ -242,7 +242,7 @@ if not st.session_state.logged_in:
                         else:
                             st.error("❌ PIN Salah!")
                                 
-        st.markdown("<p style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
+        st.markdown("<p class='login-footer' style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
 
 # ── MAIN APP WITH SIDEBAR ─────────────────────────────────────────────────────
 else:

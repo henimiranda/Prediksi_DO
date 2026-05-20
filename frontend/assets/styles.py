@@ -238,8 +238,14 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     box-shadow: none !important;
 }
 
-/* Hide login background and orbs instantly when entering main dashboard */
-.login-bg, .orb {
+/* Hide login background and all login page elements instantly when entering main dashboard */
+.login-bg, .orb, .login-logo, .login-title, .login-subtitle, .login-user-info, .login-pin-header, .login-footer {
+    display: none !important;
+}
+
+/* Hide all text inputs and buttons inside 3-column layouts when in main app (to target ghost PIN inputs and buttons) */
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) div[data-testid="stTextInput"],
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2):nth-last-child(2) button {
     display: none !important;
 }
 </style>
