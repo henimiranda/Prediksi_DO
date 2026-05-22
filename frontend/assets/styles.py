@@ -6,9 +6,14 @@ LOGIN_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap');
 
-.stApp {
+.stApp, [data-testid="stApp"], [data-testid="stAppViewContainer"] {
     background: radial-gradient(circle at 50% 50%, #111827 0%, #030712 100%) !important;
+    background-color: #030712 !important;
     font-family: 'Outfit', sans-serif;
+}
+[data-testid="stMain"], section.main {
+    background: transparent !important;
+    background-color: transparent !important;
 }
 [data-testid="stHeader"], #MainMenu, footer { visibility: hidden; }
 .block-container { padding-top: 1.5rem !important; }
@@ -59,9 +64,14 @@ MAIN_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap');
 
 /* ── Global Setup ── */
-.stApp {
-    background: radial-gradient(circle at 10% 20%, #0f172a 0%, #020617 90%) !important;
+.stApp, [data-testid="stApp"], [data-testid="stAppViewContainer"] {
+    background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 100%) !important;
+    background-color: #090d16 !important;
     font-family: 'Outfit', sans-serif;
+}
+[data-testid="stMain"], section.main {
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 /* Sembunyikan elemen sampah di Header tapi biarkan tombol Sidebar tetap ada */
