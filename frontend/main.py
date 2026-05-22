@@ -14,6 +14,12 @@ html, body, [data-testid="stApp"] {
     background-color: #0b0e14 !important;
     transition: none !important;
 }
+/* Sembunyikan header, footer, dan menu default Streamlit */
+[data-testid="stHeader"], #MainMenu, footer {
+    visibility: hidden !important;
+    display: none !important;
+    height: 0px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
