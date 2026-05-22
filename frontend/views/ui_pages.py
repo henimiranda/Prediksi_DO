@@ -39,19 +39,69 @@ def show_metrics_block(key=""):
         st.markdown("#### 🏆 Skor Performa AI (Identik)")
         st.info("💡 Hasil analisis **Random Forest** & **XGBoost** menunjukkan skor yang **sama**.")
         row = df_m.iloc[0]
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         c1.markdown(_metric(f"{row['Accuracy']:.1%}", "Akurasi", "#818cf8"), unsafe_allow_html=True)
         c2.markdown(_metric(f"{row['Precision']:.1%}", "Presisi", "#c084fc"), unsafe_allow_html=True)
         c3.markdown(_metric(f"{row['Recall']:.1%}", "Recall", "#f472b6"), unsafe_allow_html=True)
+        f1_val = row.get('F1-Score', (2 * row['Precision'] * row['Recall']) / (row['Precision'] + row['Recall']) if (row['Precision'] + row['Recall']) > 0 else 0)
+        c4.markdown(_metric(f"{f1_val:.1%}", "F1-Score", "#fb7185"), unsafe_allow_html=True)
+        
+        # Tampilkan Confusion Matrix jika tersedia
+        cm = row.get('ConfusionMatrix', None)
+        if cm is not None and len(cm) == 2:
+            st.markdown("<br>##### 📊 Confusion Matrix (Identik)", unsafe_allow_html=True)
+            st.markdown(f"""
+            <table style='width:100%; border-collapse: collapse; text-align:center; color:white; border: 1px solid rgba(255,255,255,0.1); margin-top:0.5rem;'>
+              <tr style='background:rgba(255,255,255,0.05); font-weight:bold;'>
+                <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Aktual \ Prediksi</th>
+                <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Aktif (0)</th>
+                <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Drop Out (1)</th>
+              </tr>
+              <tr>
+                <td style='padding:10px; font-weight:bold; background:rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);'>Aktual Aktif (0)</td>
+                <td style='padding:10px; background:rgba(16,185,129,0.15); color:#10b981; border: 1px solid rgba(255,255,255,0.1); font-weight:bold;'>TN: {cm[0][0]} (True Neg)</td>
+                <td style='padding:10px; background:rgba(244,63,94,0.15); color:#f43f5e; border: 1px solid rgba(255,255,255,0.1);'>FP: {cm[0][1]} (False Pos)</td>
+              </tr>
+              <tr>
+                <td style='padding:10px; font-weight:bold; background:rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);'>Aktual DO (1)</td>
+                <td style='padding:10px; background:rgba(244,63,94,0.15); color:#f43f5e; border: 1px solid rgba(255,255,255,0.1);'>FN: {cm[1][0]} (False Neg)</td>
+                <td style='padding:10px; background:rgba(16,185,129,0.15); color:#10b981; border: 1px solid rgba(255,255,255,0.1); font-weight:bold;'>TP: {cm[1][1]} (True Pos)</td>
+              </tr>
+            </table>
+            """, unsafe_allow_html=True)
     else:
         st.markdown("#### 🏆 Perbandingan Model AI")
         for _, row in df_m.iterrows():
             st.markdown(f"**🤖 {row['Model']}**")
-            c1, c2, c3 = st.columns(3)
-            c1.markdown(_metric(f"{row['Accuracy']:.1%}", "Akurasi"), unsafe_allow_html=True)
-            c2.markdown(_metric(f"{row['Precision']:.1%}", "Presisi"), unsafe_allow_html=True)
-            c3.markdown(_metric(f"{row['Recall']:.1%}", "Recall"), unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
+            c1, c2, c3, c4 = st.columns(4)
+            c1.markdown(_metric(f"{row['Accuracy']:.1%}", "Akurasi", "#818cf8"), unsafe_allow_html=True)
+            c2.markdown(_metric(f"{row['Precision']:.1%}", "Presisi", "#c084fc"), unsafe_allow_html=True)
+            c3.markdown(_metric(f"{row['Recall']:.1%}", "Recall", "#f472b6"), unsafe_allow_html=True)
+            f1_val = row.get('F1-Score', (2 * row['Precision'] * row['Recall']) / (row['Precision'] + row['Recall']) if (row['Precision'] + row['Recall']) > 0 else 0)
+            c4.markdown(_metric(f"{f1_val:.1%}", "F1-Score", "#fb7185"), unsafe_allow_html=True)
+            
+            cm = row.get('ConfusionMatrix', None)
+            if cm is not None and len(cm) == 2:
+                st.markdown(f"<div style='margin-top:0.5rem;'><b>📊 Confusion Matrix ({row['Model']})</b></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <table style='width:100%; border-collapse: collapse; text-align:center; color:white; border: 1px solid rgba(255,255,255,0.1); margin-top:0.3rem; margin-bottom: 1rem;'>
+                  <tr style='background:rgba(255,255,255,0.05); font-weight:bold;'>
+                    <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Aktual \ Prediksi</th>
+                    <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Aktif (0)</th>
+                    <th style='padding:10px; border: 1px solid rgba(255,255,255,0.1);'>Drop Out (1)</th>
+                  </tr>
+                  <tr>
+                    <td style='padding:10px; font-weight:bold; background:rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);'>Aktual Aktif (0)</td>
+                    <td style='padding:10px; background:rgba(16,185,129,0.15); color:#10b981; border: 1px solid rgba(255,255,255,0.1); font-weight:bold;'>TN: {cm[0][0]} (True Neg)</td>
+                    <td style='padding:10px; background:rgba(244,63,94,0.15); color:#f43f5e; border: 1px solid rgba(255,255,255,0.1);'>FP: {cm[0][1]} (False Pos)</td>
+                  </tr>
+                  <tr>
+                    <td style='padding:10px; font-weight:bold; background:rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);'>Aktual DO (1)</td>
+                    <td style='padding:10px; background:rgba(244,63,94,0.15); color:#f43f5e; border: 1px solid rgba(255,255,255,0.1);'>FN: {cm[1][0]} (False Neg)</td>
+                    <td style='padding:10px; background:rgba(16,185,129,0.15); color:#10b981; border: 1px solid rgba(255,255,255,0.1); font-weight:bold;'>TP: {cm[1][1]} (True Pos)</td>
+                  </tr>
+                </table>
+                """, unsafe_allow_html=True)
 
 def page_dashboard(load_from_db, DB_AVAILABLE):
     _header("📊","Dashboard","Ringkasan data dan statistik mahasiswa")

@@ -7,62 +7,49 @@ LOGIN_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap');
 
 .stApp {
-    background: linear-gradient(135deg, #0a0f1a 0%, #111827 40%, #1e1b4b 100%);
+    background: radial-gradient(circle at 50% 50%, #111827 0%, #030712 100%) !important;
     font-family: 'Outfit', sans-serif;
 }
 [data-testid="stHeader"], #MainMenu, footer { visibility: hidden; }
-.block-container { padding-top: 2rem !important; }
+.block-container { padding-top: 1.5rem !important; }
 
 /* Custom Login Card Styling */
 .login-card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 1.5rem;
-    padding: 3rem 2rem;
+    padding: 1.5rem 2rem;
     text-align: center;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), 0 0 35px rgba(99, 102, 241, 0.12);
     margin: 0 auto;
+    max-width: 420px;
 }
 .login-logo {
-    font-size: 3.5rem;
-    margin-bottom: 0.5rem;
-    line-height: 1;
+    font-size: 2.8rem;
+    margin-bottom: 0.4rem;
+    filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4));
+    animation: float_logo 3s infinite ease-in-out;
+}
+@keyframes float_logo {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.02); }
 }
 .login-title {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 800;
-    font-size: 2.2rem;
-    color: #ffffff;
-    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 0.2rem 0;
     letter-spacing: -0.5px;
 }
 .login-subtitle {
     color: #94a3b8;
-    font-size: 0.95rem;
-    margin-bottom: 2.5rem;
-}
-.google-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #ffffff;
-    color: #1f2937;
-    font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 50px;
-    text-decoration: none;
-    font-family: 'Outfit', sans-serif;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-    width: 100%;
-    max-width: 280px;
-}
-.google-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-    background-color: #f8fafc;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
 }
 </style>
 """
@@ -73,25 +60,45 @@ MAIN_CSS = """
 
 /* ── Global Setup ── */
 .stApp {
-    background: #0b0e14;
+    background: radial-gradient(circle at 10% 20%, #0f172a 0%, #020617 90%) !important;
     font-family: 'Outfit', sans-serif;
 }
 
 /* Sembunyikan elemen sampah di Header tapi biarkan tombol Sidebar tetap ada */
-header[data-testid="stHeader"] {
+[data-testid="stHeader"] {
+    visibility: visible !important;
     background: rgba(0,0,0,0) !important;
 }
-/* Menyembunyikan tombol Deploy dan elemen kanan lainnya */
-[data-testid="stHeader"] > div:first-child > div:nth-child(2) {
+/* Pastikan kontrol pembuka sidebar terlihat */
+div[data-testid="collapsedSidebarControl"] {
+    visibility: visible !important;
+    display: flex !important;
+}
+/* Sembunyikan tombol Deploy dan MainMenu secara spesifik tanpa mengganggu tombol sidebar */
+div[data-testid="stConnectionStatus"],
+button[data-testid="stHeaderDeployButton"],
+.stDeployButton,
+#MainMenu,
+footer {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Sembunyikan hanya tombol CLOSE (panah lipat) di dalam sidebar */
+[data-testid="stSidebar"] button[data-testid="stSidebarCollapseButton"] {
     display: none !important;
 }
-#MainMenu, footer { visibility: hidden; }
 
-/* Pastikan tombol panah sidebar terlihat jelas */
-button[data-testid="stSidebarCollapseButton"] {
+/* Jika sidebar tertutup (karena localStorage browser), tampilkan tombol buka dengan aksen warna mencolok */
+button[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedSidebarControl"] button {
+    background-color: #4f46e5 !important;
     color: white !important;
-    background: rgba(255,255,255,0.05) !important;
-    border-radius: 50% !important;
+    border: 1px solid #818cf8 !important;
+    box-shadow: 0 4px 15px rgba(79,70,229,0.4) !important;
+    display: inline-flex !important;
+    visibility: visible !important;
+    z-index: 999999 !important;
 }
 
 /* 👑 Admin Badge Top Right */
@@ -100,8 +107,8 @@ button[data-testid="stSidebarCollapseButton"] {
     top: 1rem;
     right: 1.5rem;
     z-index: 999999;
-    background: rgba(255,255,255,0.03);
-    backdrop-filter: blur(10px);
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.08);
     padding: 0.5rem 1.2rem;
     border-radius: 50px;
@@ -111,43 +118,46 @@ button[data-testid="stSidebarCollapseButton"] {
     display: flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 .admin-badge b { color: #818cf8; }
 
 /* ── Sidebar Container ── */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important;
-    border-right: 1px solid rgba(99,102,241,0.1) !important;
+    background: linear-gradient(180deg, #090d16 0%, #030712 100%) !important;
+    border-right: 1px solid rgba(99,102,241,0.15) !important;
     width: 320px !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding-top: 0rem !important;
+    padding-bottom: 120px !important; /* Beri ruang agar tidak tertutup footer */
 }
 
 /* ── Premium Brand ── */
 .sidebar-brand {
     text-align: center;
-    padding: 0.5rem 1rem 0.5rem 1rem;
-    margin-bottom: 0.2rem;
+    padding: 1.5rem 1rem 1rem 1rem;
+    margin-bottom: 1rem;
 }
 .sidebar-brand .icon {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     display: block;
     margin-bottom: 0.2rem;
+    filter: drop-shadow(0 0 10px rgba(99,102,241,0.4));
 }
 .sidebar-brand h1 {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 800;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     line-height: 1.2;
     background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0;
+    letter-spacing: -0.5px;
 }
 .sidebar-brand p {
-    color: #475569;
+    color: #64748b;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.2em;
@@ -159,11 +169,11 @@ button[data-testid="stSidebarCollapseButton"] {
     padding: 0 1rem;
 }
 .stButton > button {
-    background: rgba(255,255,255,0.03) !important;
+    background: rgba(255,255,255,0.02) !important;
     color: #94a3b8 !important;
     border: 1px solid rgba(255,255,255,0.05) !important;
     border-radius: 0.85rem !important;
-    padding: 0.7rem 1.2rem !important;
+    padding: 0.75rem 1.2rem !important;
     font-weight: 600 !important;
     font-size: 0.95rem !important;
     width: 100% !important;
@@ -175,44 +185,73 @@ button[data-testid="stSidebarCollapseButton"] {
     margin-bottom: 0.6rem !important;
 }
 .stButton > button:hover {
-    background: rgba(99,102,241,0.1) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(99,102,241,0.3) !important;
+    background: rgba(99,102,241,0.12) !important;
+    color: #f1f5f9 !important;
+    border-color: rgba(99,102,241,0.35) !important;
+    border-bottom: 3px solid rgba(192, 132, 252, 0.6) !important;
     transform: translateX(5px) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 4px 15px rgba(99,102,241,0.1) !important;
 }
 .active-nav button {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
     color: white !important;
-    border: none !important;
-    box-shadow: 0 10px 20px rgba(79,70,229,0.3) !important;
+    border-left: 4px solid #818cf8 !important;
+    border-bottom: 4px solid #c084fc !important; /* Bottom-nya berwarna (colored bottom border) */
+    box-shadow: 0 8px 20px rgba(99,102,241,0.2) !important;
 }
 
-/* ── Content Cards ── */
+/* ── Sidebar Footer ── */
+.sidebar-footer {
+    position: fixed;
+    bottom: 0px;
+    left: 0px;
+    width: 320px;
+    padding: 1rem 1.5rem;
+    background: #030712;
+    border-top: 1px solid rgba(99,102,241,0.2) !important;
+    z-index: 100;
+}
+
+/* ── Content Cards & Glassmorphism ── */
 .metric-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 1.2rem; padding: 1.5rem; text-align: center;
-    transition: all 0.3s ease;
+    border-radius: 1.2rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
 }
-.metric-card:hover { transform: translateY(-5px); border-color: rgba(99,102,241,0.3); }
+.metric-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(99,102,241,0.4);
+    background: rgba(99,102,241,0.03);
+    box-shadow: 0 10px 30px rgba(99,102,241,0.15);
+}
 .metric-value { font-size:2.2rem; font-weight:800; color:white; }
 .metric-label { font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.1em; }
 
 .section-card {
-    background: rgba(255,255,255,0.02);
+    background: rgba(15, 23, 42, 0.3);
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 1.5rem; padding: 2rem; margin-bottom: 1.5rem;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .page-header {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    border-left: 4px solid #818cf8;
+    padding-left: 1rem;
 }
 .page-header h1 {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 2.2rem;
+    font-weight: 800;
     color: white;
     margin-bottom: 0.2rem;
+    letter-spacing: -0.5px;
 }
 .page-header p {
     color: #94a3b8;
@@ -220,15 +259,48 @@ button[data-testid="stSidebarCollapseButton"] {
 }
 
 .result-card {
-    background: rgba(255,255,255,0.03);
-    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 2rem;
     padding: 2.5rem;
     text-align: center;
     margin-bottom: 2rem;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
-.result-pct { font-size: 4rem; font-weight: 800; }
-.result-label { font-size: 1.5rem; font-weight: 700; margin: 0.5rem 0; }
+.result-pct { font-size: 4.5rem; font-weight: 900; }
+.result-label { font-size: 1.6rem; font-weight: 800; margin: 0.5rem 0; }
 .result-sub { font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* ── Modern Form Controls Override ── */
+div[data-testid="stForm"] {
+    background: rgba(15, 23, 42, 0.25) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 1.5rem !important;
+    padding: 2rem !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
+}
+
+/* Style Inputs, Selectboxes, Slider, & Text Areas globally for premium dark UI */
+input, select, textarea, div[data-baseweb="select"] {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0.8rem !important;
+    color: white !important;
+    transition: all 0.25s ease !important;
+}
+input:focus, select:focus, div[data-baseweb="select"]:focus-within {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 12px rgba(129, 140, 248, 0.25) !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Modernise Streamlit Status Alert Dialogs */
+div[data-testid="stNotification"] {
+    border-radius: 1rem !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+}
 
 /* Reset the login card styling on columns if any style leaked from previous runs */
 div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
