@@ -14,11 +14,14 @@ html, body, [data-testid="stApp"] {
     background-color: #0b0e14 !important;
     transition: none !important;
 }
-/* Sembunyikan header, footer, dan menu default Streamlit */
-[data-testid="stHeader"], #MainMenu, footer {
+/* Sembunyikan tombol Deploy bawaan, status koneksi, dan menu default Streamlit */
+.stAppDeployButton, #MainMenu, footer, [data-testid="stHeader"] > div:first-child > div:last-child {
     visibility: hidden !important;
     display: none !important;
-    height: 0px !important;
+}
+[data-testid="stHeader"] {
+    background-color: transparent !important;
+    background: transparent !important;
 }
 </style>
 """, unsafe_allow_html=True)
