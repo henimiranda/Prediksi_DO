@@ -607,6 +607,10 @@ else:
         # Navigasi
         st.markdown("<div class='nav-container'>", unsafe_allow_html=True)
         for icon, label in MENU_ITEMS:
+            # Hanya Administrator Utama yang bisa melihat menu Manajemen Pengguna
+            if label == "Manajemen Pengguna" and st.session_state.get("user_email") != "henimiranda9@gmail.com":
+                continue
+                
             is_active = st.session_state.active_page == label
             if is_active:
                 st.markdown("<div class='active-nav'>", unsafe_allow_html=True)
@@ -643,4 +647,7 @@ else:
     elif pg == "Riwayat Prediksi":
         page_history(load_prediction_history, DB_AVAILABLE)
     elif pg == "Manajemen Pengguna":
-        page_user_management(get_all_users, update_user_auth)
+        if st.session_state.get("user_email") == "henimiranda9@gmail.com":
+            page_user_management(get_all_users, update_user_auth)
+        else:
+            st.warning("⚠️ Akses ditolak. Halaman ini hanya dapat diakses oleh Administrator Utama.")
