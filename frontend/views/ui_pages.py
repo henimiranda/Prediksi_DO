@@ -202,6 +202,19 @@ def page_predict(engine, save_prediction_to_db):
 
 def page_batch(engine, save_prediction_to_db):
     _header("📂","Prediksi Batch","Upload CSV untuk prediksi massal")
+    
+    # Template CSV untuk didownload
+    template_data = "NIM,Angkatan,Semester,IPK,SKS_Lulus,Mengulang,Absensi,Status_Pembayaran\n12345678,2022,4,3.25,80,0,95.0,1\n87654321,2021,6,2.80,110,2,82.5,0\n"
+    st.download_button(
+        label="📥 Download Template CSV",
+        data=template_data,
+        file_name="template_prediksi_batch.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+    
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    
     with st.form("batch_form"):
         bf = st.file_uploader("📁 Upload CSV Mahasiswa", type="csv")
         bm = st.selectbox("Model AI",["XGBoost","Random Forest"])
@@ -258,7 +271,32 @@ def page_history(load_prediction_history, DB_AVAILABLE):
         c4.markdown(_metric(na,"🟢 Aman","#10b981"), unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.dataframe(df_h, use_container_width=True, height=400)
+        
+        # Penataan kolom
+        display_cols = {
+            'nim': 'NIM',
+            'angkatan': 'Angkatan',
+            'semester': 'Semester',
+            'ipk': 'IPK',
+            'sks_lulus': 'SKS Lulus',
+            'mengulang': 'Mengulang',
+            'absensi': 'Absensi (%)',
+            'status_pembayaran': 'Bayar',
+            'risiko_persen': 'Risiko (%)',
+            'status_risiko': 'Status',
+            'model_ai': 'Model',
+            'tipe_prediksi': 'Tipe',
+            'tanggal_prediksi': 'Tanggal'
+        }
+        cols_to_use = [c for c in display_cols.keys() if c in df_h.columns]
+        df_display = df_h[cols_to_use].copy()
+        
+        if 'status_pembayaran' in df_display.columns:
+            df_display['status_pembayaran'] = df_display['status_pembayaran'].map({1: 'Lunas', 0: 'Belum'})
+            
+        df_display = df_display.rename(columns=display_cols)
+        
+        st.dataframe(df_display, use_container_width=True, height=400)
         st.download_button("📥 DOWNLOAD RIWAYAT",df_h.to_csv(index=False).encode('utf-8'),"Riwayat_Prediksi.csv","text/csv")
         
         st.markdown("---")
