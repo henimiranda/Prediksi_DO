@@ -269,7 +269,7 @@ if not st.session_state.logged_in:
                 )
                 
                 st.markdown(f"""
-                <div style="display:flex; justify-content:center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                <div style="display:flex; justify-content:center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
                     <a href="{auth_url}" target="_blank" style="
                         display: inline-flex;
                         align-items: center;
@@ -289,9 +289,6 @@ if not st.session_state.logged_in:
                         <img src="https://www.svgrepo.com/show/475656/google-color.svg" width="20" height="20" style="margin-right:10px;">
                         Lanjutkan dengan Google
                     </a>
-                </div>
-                <div style="text-align:center; margin-bottom: 1.5rem;">
-                    <code style="color: #64748b; font-size: 0.75rem; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Redirect URI: {REDIRECT_URI}</code>
                 </div>
                 """, unsafe_allow_html=True)
                 
