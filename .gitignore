@@ -22,3 +22,4 @@ __pycache__/
 # File tidak perlu
 cek_akurasi.py
 backend/package-lock.json
+backend/data/users_offline.json

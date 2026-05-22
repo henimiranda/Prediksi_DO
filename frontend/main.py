@@ -78,12 +78,110 @@ def check_db_connection():
             sslmode="require",
             connect_timeout=10
         )
+        # Buat tabel users_auth jika belum ada
+        _cur = _conn.cursor()
+        _cur.execute("""
+            CREATE TABLE IF NOT EXISTS users_auth (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                pin VARCHAR(6) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        _conn.commit()
+        _cur.close()
         _conn.close()
         return True, None
     except Exception as e:
         return False, str(e)
 
 DB_AVAILABLE, DB_ERROR = check_db_connection()
+
+# ── Helper Autentikasi Pengguna & PIN ────────────────────────────────────────
+import json
+
+def get_user_pin(email):
+    email = email.lower().strip()
+    if DB_AVAILABLE:
+        try:
+            import psycopg2 as _pg2
+            _conn = _pg2.connect(
+                host=_cfg("DB_HOST", "localhost"),
+                database=_cfg("DB_NAME", "prediksi_do"),
+                user=_cfg("DB_USER", "postgres"),
+                password=_cfg("DB_PASSWORD", ""),
+                port=_cfg("DB_PORT", "5432"),
+                sslmode="require",
+                connect_timeout=10
+            )
+            _cur = _conn.cursor()
+            _cur.execute("SELECT pin FROM users_auth WHERE email = %s", (email,))
+            row = _cur.fetchone()
+            _cur.close()
+            _conn.close()
+            if row:
+                return row[0]
+        except Exception:
+            pass
+
+    # Fallback ke penyimpanan offline lokal jika DB tidak tersedia
+    offline_file = "backend/data/users_offline.json"
+    if os.path.exists(offline_file):
+        try:
+            with open(offline_file, "r") as f:
+                users = json.load(f)
+                return users.get(email)
+        except Exception:
+            pass
+    return None
+
+def save_user_pin(email, pin):
+    email = email.lower().strip()
+    pin = pin.strip()
+    saved = False
+    if DB_AVAILABLE:
+        try:
+            import psycopg2 as _pg2
+            _conn = _pg2.connect(
+                host=_cfg("DB_HOST", "localhost"),
+                database=_cfg("DB_NAME", "prediksi_do"),
+                user=_cfg("DB_USER", "postgres"),
+                password=_cfg("DB_PASSWORD", ""),
+                port=_cfg("DB_PORT", "5432"),
+                sslmode="require",
+                connect_timeout=10
+            )
+            _cur = _conn.cursor()
+            _cur.execute("""
+                INSERT INTO users_auth (email, pin)
+                VALUES (%s, %s)
+                ON CONFLICT (email) DO UPDATE SET pin = EXCLUDED.pin
+            """, (email, pin))
+            _conn.commit()
+            _cur.close()
+            _conn.close()
+            saved = True
+        except Exception:
+            pass
+
+    # Selalu simpan salinan cadangan di lokal / jika DB gagal
+    offline_file = "backend/data/users_offline.json"
+    os.makedirs(os.path.dirname(offline_file), exist_ok=True)
+    users = {}
+    if os.path.exists(offline_file):
+        try:
+            with open(offline_file, "r") as f:
+                users = json.load(f)
+        except Exception:
+            pass
+    users[email] = pin
+    try:
+        with open(offline_file, "w") as f:
+            json.dump(users, f, indent=4)
+        saved = True
+    except Exception:
+        pass
+    return saved
 
 # ── ML ENGINE ─────────────────────────────────────────────────────────────────
 @st.cache_resource
@@ -93,6 +191,7 @@ def get_engine():
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'active_page' not in st.session_state: st.session_state.active_page = "Dashboard"
+if 'user_email' not in st.session_state: st.session_state.user_email = None
 
 MENU_ITEMS = [
     ("📊","Dashboard"),
@@ -117,15 +216,10 @@ if not st.session_state.logged_in:
             </div>
             """, unsafe_allow_html=True)
             
-            # --- Konfigurasi Admin ---
-            ALLOWED_EMAIL = "henimiranda9@gmail.com"
-            CORRECT_PIN = "123456"
-            
             # --- Kredensial Google OAuth Asli ---
-            CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-            CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-            REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8501/") 
-            
+            CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+            CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+            REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8501/").strip()            
             # State Management
             if 'oauth_email' not in st.session_state:
                 st.session_state.oauth_email = None
@@ -155,10 +249,8 @@ if not st.session_state.logged_in:
                         
                         if "email" in user_json:
                             user_email = user_json["email"]
-                            if user_email.lower() == ALLOWED_EMAIL.lower():
-                                st.session_state.oauth_email = user_email
-                            else:
-                                st.error(f"❌ Email '{user_email}' tidak terdaftar sebagai Administrator!")
+                            # Perbolehkan semua email login
+                            st.session_state.oauth_email = user_email
                     else:
                         st.error(f"Gagal mendapatkan akses dari Google. Detail: {token_json}")
                 except Exception as e:
@@ -177,7 +269,7 @@ if not st.session_state.logged_in:
                 )
                 
                 st.markdown(f"""
-                <div style="display:flex; justify-content:center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display:flex; justify-content:center; margin-top: 1.5rem; margin-bottom: 0.5rem;">
                     <a href="{auth_url}" target="_blank" style="
                         display: inline-flex;
                         align-items: center;
@@ -198,32 +290,75 @@ if not st.session_state.logged_in:
                         Lanjutkan dengan Google
                     </a>
                 </div>
+                <div style="text-align:center; margin-bottom: 1.5rem;">
+                    <code style="color: #64748b; font-size: 0.75rem; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">Redirect URI: {REDIRECT_URI}</code>
+                </div>
                 """, unsafe_allow_html=True)
                 
             else:
-                st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{st.session_state.oauth_email}</b></p>", unsafe_allow_html=True)
-                st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Masukkan PIN</h4>", unsafe_allow_html=True)
+                email = st.session_state.oauth_email
+                saved_pin = get_user_pin(email)
                 
-                input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
-                
-                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    btn_batal = st.button("⬅ Batal", use_container_width=True)
-                with col_btn2:
-                    btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
-                
-                if btn_batal:
-                    st.session_state.oauth_email = None
-                    st.rerun()
-                
-                if btn_buka or (input_pin and len(input_pin) == 6):
-                    if input_pin == CORRECT_PIN:
-                        st.session_state.logged_in = True
+                if saved_pin is None:
+                    # User belum punya PIN, arahkan buat PIN baru
+                    st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Buat PIN Baru</h4>", unsafe_allow_html=True)
+                    st.markdown("<p style='text-align:center; color:#94a3b8; font-size:0.8rem; margin-bottom: 1rem;'>Silakan buat PIN 6 digit angka untuk login berikutnya.</p>", unsafe_allow_html=True)
+                    
+                    new_pin = st.text_input("PIN Baru (6 Digit)", type="password", placeholder="••••••", max_chars=6)
+                    confirm_pin = st.text_input("Konfirmasi PIN Baru (6 Digit)", type="password", placeholder="••••••", max_chars=6)
+                    
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                    col_btn1, col_btn2 = st.columns(2)
+                    with col_btn1:
+                        btn_batal = st.button("⬅ Batal", use_container_width=True)
+                    with col_btn2:
+                        btn_simpan = st.button("💾 Simpan & Masuk", use_container_width=True)
+                        
+                    if btn_batal:
                         st.session_state.oauth_email = None
                         st.rerun()
-                    else:
-                        st.error("❌ PIN Salah!")
+                        
+                    if btn_simpan:
+                        if not new_pin or len(new_pin) != 6 or not new_pin.isdigit():
+                            st.error("❌ PIN harus berupa 6 digit angka!")
+                        elif new_pin != confirm_pin:
+                            st.error("❌ Konfirmasi PIN tidak cocok!")
+                        else:
+                            if save_user_pin(email, new_pin):
+                                st.session_state.logged_in = True
+                                st.session_state.user_email = email
+                                st.session_state.oauth_email = None
+                                st.success("✅ PIN berhasil disimpan!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Gagal menyimpan PIN! Silakan coba lagi.")
+                else:
+                    # User sudah punya PIN, tampilkan input PIN
+                    st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
+                    st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Masukkan PIN</h4>", unsafe_allow_html=True)
+                    
+                    input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
+                    
+                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                    col_btn1, col_btn2 = st.columns(2)
+                    with col_btn1:
+                        btn_batal = st.button("⬅ Batal", use_container_width=True)
+                    with col_btn2:
+                        btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
+                    
+                    if btn_batal:
+                        st.session_state.oauth_email = None
+                        st.rerun()
+                    
+                    if btn_buka or (input_pin and len(input_pin) == 6):
+                        if input_pin == saved_pin:
+                            st.session_state.logged_in = True
+                            st.session_state.user_email = email
+                            st.session_state.oauth_email = None
+                            st.rerun()
+                        else:
+                            st.error("❌ PIN Salah!")
                                 
         st.markdown("<p style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
 
@@ -233,8 +368,9 @@ else:
     engine = get_engine()
 
     # 👑 PINDAH KE POJOK KANAN ATAS (Floating Badge)
-    st.markdown("""<div class='admin-badge'>
-        <span>👤</span> Administrator: <b>Admin</b>
+    user_display = st.session_state.get('user_email', 'Admin')
+    st.markdown(f"""<div class='admin-badge'>
+        <span>👤</span> Pengguna: <b>{user_display}</b>
     </div>""", unsafe_allow_html=True)
 
     with st.sidebar:
