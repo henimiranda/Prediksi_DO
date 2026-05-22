@@ -273,3 +273,85 @@ def page_history(load_prediction_history, DB_AVAILABLE):
             except Exception as e:
                 st.error(f"Gagal menghapus: {e}")
     else: st.info("💭 Belum ada riwayat.")
+
+def page_user_management(get_all_users, update_user_auth):
+    _header("👥", "Manajemen Pengguna", "Kelola hak akses pengguna, berikan akses admin, atau kunci pengguna")
+    
+    users = get_all_users()
+    
+    # Kolom pencarian email
+    search_query = st.text_input("🔍 Cari Email Pengguna", placeholder="Ketik email untuk mencari...", label_visibility="collapsed")
+    
+    if search_query:
+        users = [u for u in users if search_query.lower().strip() in u["email"].lower()]
+        
+    if not users:
+        st.info("ℹ️ Tidak ada pengguna terdaftar yang sesuai pencarian.")
+        return
+        
+    st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+    
+    # Judul kolom tabel (Tanpa kolom Tindakan/Action)
+    col_em, col_ro, col_lo = st.columns([4, 3, 3])
+    col_em.markdown("**Email**")
+    col_ro.markdown("**Peran (Admin)**")
+    col_lo.markdown("**Status Akses**")
+    st.markdown("<hr style='margin: 0.5rem 0 1rem 0; border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
+    
+    for u in users:
+        u_email = u["email"]
+        u_is_admin = u["is_admin"]
+        u_is_locked = u["is_locked"]
+        
+        # Super admin (owner atau akun yang sedang login) tidak bisa diubah statusnya
+        is_protected = (u_email == "henimiranda9@gmail.com" or u_email == st.session_state.get("user_email"))
+        
+        col_em_val, col_ro_val, col_lo_val = st.columns([4, 3, 3])
+        
+        # Kolom Email (Tanpa emoji mahkota/crown)
+        if u_is_admin:
+            col_em_val.markdown(f"**{u_email}**")
+        else:
+            col_em_val.markdown(u_email)
+            
+        if is_protected:
+            # Tanpa emoji perisai/shield
+            col_ro_val.markdown("Super Admin")
+            col_lo_val.markdown("Aktif")
+        else:
+            # Dropdown Peran (Tanpa emoji)
+            role_opts = ["Admin", "Regular User"]
+            role_idx = 0 if u_is_admin else 1
+            role_sel = col_ro_val.selectbox(
+                f"Peran_{u_email}",
+                options=role_opts,
+                index=role_idx,
+                key=f"role_{u_email}",
+                label_visibility="collapsed"
+            )
+            
+            # Dropdown Kunci (Tanpa emoji gembok/lock)
+            lock_opts = ["Aktif", "Terkunci"]
+            lock_idx = 1 if u_is_locked else 0
+            lock_sel = col_lo_val.selectbox(
+                f"Status_{u_email}",
+                options=lock_opts,
+                index=lock_idx,
+                key=f"lock_{u_email}",
+                label_visibility="collapsed"
+            )
+            
+            # Cek perubahan untuk auto-save langsung
+            new_is_admin = (role_sel == "Admin")
+            new_is_locked = (lock_sel == "Terkunci")
+            
+            if new_is_admin != u_is_admin or new_is_locked != u_is_locked:
+                if update_user_auth(u_email, new_is_admin, new_is_locked):
+                    st.toast(f"✅ Akses {u_email} berhasil diperbarui!")
+                    st.rerun()
+                else:
+                    st.error("Gagal memperbarui database!")
+                
+        st.markdown("<hr style='margin: 0.8rem 0; border-color: rgba(255,255,255,0.05);'>", unsafe_allow_html=True)
+        
+    st.markdown("</div>", unsafe_allow_html=True)

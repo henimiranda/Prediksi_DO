@@ -40,7 +40,7 @@ if root_path not in sys.path:
 from frontend.assets.styles import MAIN_CSS
 from frontend.views.ui_pages import (
     page_dashboard, page_data, page_predict, 
-    page_batch, page_history
+    page_batch, page_history, page_user_management
 )
 from backend.core.ml_logic import (
     MLEngine, load_from_db, save_to_db, 
@@ -93,6 +93,8 @@ def check_db_connection():
                 pin VARCHAR(6) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            ALTER TABLE users_auth ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+            ALTER TABLE users_auth ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
         """)
         _conn.commit()
         _cur.close()
@@ -106,8 +108,9 @@ DB_AVAILABLE, DB_ERROR = check_db_connection()
 # ── Helper Autentikasi Pengguna & PIN ────────────────────────────────────────
 import json
 
-def get_user_pin(email):
+def get_user_auth_details(email):
     email = email.lower().strip()
+    details = None
     if DB_AVAILABLE:
         try:
             import psycopg2 as _pg2
@@ -121,30 +124,85 @@ def get_user_pin(email):
                 connect_timeout=10
             )
             _cur = _conn.cursor()
-            _cur.execute("SELECT pin FROM users_auth WHERE email = %s", (email,))
+            _cur.execute("SELECT pin, is_admin, is_locked FROM users_auth WHERE email = %s", (email,))
             row = _cur.fetchone()
             _cur.close()
             _conn.close()
             if row:
-                return row[0]
+                is_admin_db = row[1]
+                is_locked_db = row[2]
+                
+                # Pengaman super admin owner
+                if email == "henimiranda9@gmail.com":
+                    if not is_admin_db or is_locked_db:
+                        # Auto-update status di database jika tidak sinkron
+                        try:
+                            _conn2 = _pg2.connect(
+                                host=_cfg("DB_HOST", "localhost"),
+                                database=_cfg("DB_NAME", "prediksi_do"),
+                                user=_cfg("DB_USER", "postgres"),
+                                password=_cfg("DB_PASSWORD", ""),
+                                port=_cfg("DB_PORT", "5432"),
+                                sslmode="require",
+                                connect_timeout=10
+                            )
+                            _cur2 = _conn2.cursor()
+                            _cur2.execute("UPDATE users_auth SET is_admin = TRUE, is_locked = FALSE WHERE email = %s", (email,))
+                            _conn2.commit()
+                            _cur2.close()
+                            _conn2.close()
+                        except Exception:
+                            pass
+                        is_admin_db = True
+                        is_locked_db = False
+                        
+                details = {
+                    "pin": row[0],
+                    "is_admin": is_admin_db,
+                    "is_locked": is_locked_db
+                }
         except Exception:
             pass
 
-    # Fallback ke penyimpanan offline lokal jika DB tidak tersedia
-    offline_file = "backend/data/users_offline.json"
-    if os.path.exists(offline_file):
-        try:
-            with open(offline_file, "r") as f:
-                users = json.load(f)
-                return users.get(email)
-        except Exception:
-            pass
-    return None
+    # Fallback ke penyimpanan offline lokal jika DB tidak tersedia atau user tidak ditemukan
+    if not details:
+        offline_file = "backend/data/users_offline.json"
+        if os.path.exists(offline_file):
+            try:
+                with open(offline_file, "r") as f:
+                    users = json.load(f)
+                    user_data = users.get(email)
+                    if user_data:
+                        if isinstance(user_data, dict):
+                            details = {
+                                "pin": user_data.get("pin"),
+                                "is_admin": True if email == "henimiranda9@gmail.com" else user_data.get("is_admin", False),
+                                "is_locked": False if email == "henimiranda9@gmail.com" else user_data.get("is_locked", False)
+                            }
+                        else:
+                            # Backward compatibility untuk data PIN lama yang berbentuk string
+                            details = {
+                                "pin": user_data,
+                                "is_admin": (email == "henimiranda9@gmail.com"),
+                                "is_locked": False
+                            }
+            except Exception:
+                pass
+    return details
+
+def get_user_pin(email):
+    details = get_user_auth_details(email)
+    return details["pin"] if details else None
 
 def save_user_pin(email, pin):
     email = email.lower().strip()
     pin = pin.strip()
     saved = False
+    
+    # Tentukan role default (user utama/owner adalah admin)
+    is_admin = (email == "henimiranda9@gmail.com")
+    is_locked = False
+    
     if DB_AVAILABLE:
         try:
             import psycopg2 as _pg2
@@ -158,11 +216,19 @@ def save_user_pin(email, pin):
                 connect_timeout=10
             )
             _cur = _conn.cursor()
+            
+            # Jika bukan henimiranda9@gmail.com, cek apakah ini pengguna pertama terdaftar
+            if not is_admin:
+                _cur.execute("SELECT COUNT(*) FROM users_auth")
+                count = _cur.fetchone()[0]
+                if count == 0:
+                    is_admin = True
+            
             _cur.execute("""
-                INSERT INTO users_auth (email, pin)
-                VALUES (%s, %s)
+                INSERT INTO users_auth (email, pin, is_admin, is_locked)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (email) DO UPDATE SET pin = EXCLUDED.pin
-            """, (email, pin))
+            """, (email, pin, is_admin, is_locked))
             _conn.commit()
             _cur.close()
             _conn.close()
@@ -180,7 +246,16 @@ def save_user_pin(email, pin):
                 users = json.load(f)
         except Exception:
             pass
-    users[email] = pin
+            
+    # Cek jika pengguna offline pertama
+    if not is_admin and len(users) == 0:
+        is_admin = True
+        
+    users[email] = {
+        "pin": pin,
+        "is_admin": is_admin,
+        "is_locked": is_locked
+    }
     try:
         with open(offline_file, "w") as f:
             json.dump(users, f, indent=4)
@@ -188,6 +263,118 @@ def save_user_pin(email, pin):
     except Exception:
         pass
     return saved
+
+def get_all_users():
+    users_list = []
+    if DB_AVAILABLE:
+        try:
+            import psycopg2 as _pg2
+            _conn = _pg2.connect(
+                host=_cfg("DB_HOST", "localhost"),
+                database=_cfg("DB_NAME", "prediksi_do"),
+                user=_cfg("DB_USER", "postgres"),
+                password=_cfg("DB_PASSWORD", ""),
+                port=_cfg("DB_PORT", "5432"),
+                sslmode="require",
+                connect_timeout=10
+            )
+            _cur = _conn.cursor()
+            _cur.execute("SELECT email, pin, is_admin, is_locked FROM users_auth ORDER BY email ASC")
+            rows = _cur.fetchall()
+            _cur.close()
+            _conn.close()
+            for r in rows:
+                users_list.append({
+                    "email": r[0],
+                    "pin": r[1],
+                    "is_admin": r[2],
+                    "is_locked": r[3]
+                })
+        except Exception:
+            pass
+
+    # Satukan dengan fallback offline
+    offline_file = "backend/data/users_offline.json"
+    if os.path.exists(offline_file):
+        try:
+            with open(offline_file, "r") as f:
+                users = json.load(f)
+                for email, val in users.items():
+                    if not any(u["email"] == email for u in users_list):
+                        if isinstance(val, dict):
+                            users_list.append({
+                                "email": email,
+                                "pin": val.get("pin"),
+                                "is_admin": val.get("is_admin", False),
+                                "is_locked": val.get("is_locked", False)
+                            })
+                        else:
+                            users_list.append({
+                                "email": email,
+                                "pin": val,
+                                "is_admin": (email == "henimiranda9@gmail.com"),
+                                "is_locked": False
+                            })
+        except Exception:
+            pass
+    return users_list
+
+def update_user_auth(email, is_admin, is_locked):
+    email = email.lower().strip()
+    updated = False
+    if DB_AVAILABLE:
+        try:
+            import psycopg2 as _pg2
+            _conn = _pg2.connect(
+                host=_cfg("DB_HOST", "localhost"),
+                database=_cfg("DB_NAME", "prediksi_do"),
+                user=_cfg("DB_USER", "postgres"),
+                password=_cfg("DB_PASSWORD", ""),
+                port=_cfg("DB_PORT", "5432"),
+                sslmode="require",
+                connect_timeout=10
+            )
+            _cur = _conn.cursor()
+            _cur.execute("""
+                UPDATE users_auth
+                SET is_admin = %s, is_locked = %s
+                WHERE email = %s
+            """, (is_admin, is_locked, email))
+            _conn.commit()
+            _cur.close()
+            _conn.close()
+            updated = True
+        except Exception:
+            pass
+
+    # Selalu perbarui offline file
+    offline_file = "backend/data/users_offline.json"
+    if os.path.exists(offline_file):
+        try:
+            with open(offline_file, "r") as f:
+                users = json.load(f)
+            if email in users:
+                if isinstance(users[email], dict):
+                    users[email]["is_admin"] = is_admin
+                    users[email]["is_locked"] = is_locked
+                else:
+                    users[email] = {
+                        "pin": users[email],
+                        "is_admin": is_admin,
+                        "is_locked": is_locked
+                    }
+            else:
+                users[email] = {
+                    "pin": "123456",
+                    "is_admin": is_admin,
+                    "is_locked": is_locked
+                }
+            with open(offline_file, "w") as f:
+                json.dump(users, f, indent=4)
+            updated = True
+        except Exception:
+            pass
+    return updated
 
 # ── ML ENGINE ─────────────────────────────────────────────────────────────────
 @st.cache_resource
@@ -205,6 +392,7 @@ MENU_ITEMS = [
     ("🧠","Prediksi Individu"),
     ("📂","Prediksi Batch"),
     ("📜","Riwayat Prediksi"),
+    ("👥","Manajemen Pengguna"),
 ]
 
 # ── LOGIN PAGE ────────────────────────────────────────────────────────────────
@@ -300,11 +488,11 @@ if not st.session_state.logged_in:
                 
             else:
                 email = st.session_state.oauth_email
-                saved_pin = get_user_pin(email)
+                auth_details = get_user_auth_details(email)
                 
-                if saved_pin is None:
+                if auth_details is None:
                     # User belum punya PIN, arahkan buat PIN baru
-                    st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Daftar sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
                     st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Buat PIN Baru</h4>", unsafe_allow_html=True)
                     st.markdown("<p style='text-align:center; color:#94a3b8; font-size:0.8rem; margin-bottom: 1rem;'>Silakan buat PIN 6 digit angka untuk login berikutnya.</p>", unsafe_allow_html=True)
                     
@@ -316,7 +504,7 @@ if not st.session_state.logged_in:
                     with col_btn1:
                         btn_batal = st.button("⬅ Batal", use_container_width=True)
                     with col_btn2:
-                        btn_simpan = st.button("💾 Simpan & Masuk", use_container_width=True)
+                        btn_simpan = st.button("💾 Simpan & Daftar", use_container_width=True)
                         
                     if btn_batal:
                         st.session_state.oauth_email = None
@@ -329,39 +517,68 @@ if not st.session_state.logged_in:
                             st.error("❌ Konfirmasi PIN tidak cocok!")
                         else:
                             if save_user_pin(email, new_pin):
-                                st.session_state.logged_in = True
-                                st.session_state.user_email = email
-                                st.session_state.oauth_email = None
-                                st.success("✅ PIN berhasil disimpan!")
-                                st.rerun()
+                                db_details = get_user_auth_details(email)
+                                if db_details and db_details["is_admin"]:
+                                    st.session_state.logged_in = True
+                                    st.session_state.user_email = email
+                                    st.session_state.oauth_email = None
+                                    st.success("✅ Registrasi berhasil! Masuk sebagai Admin.")
+                                    st.rerun()
+                                else:
+                                    st.success("✅ Pendaftaran berhasil!")
+                                    st.info("ℹ️ Akun Anda (non-admin) saat ini berstatus 'Menunggu Persetujuan'. Silakan hubungi Administrator utama untuk diaktifkan.")
+                                    # Tunggu sejenak sebelum mereset state agar user bisa membaca pesan
+                                    import time
+                                    time.sleep(3)
+                                    st.session_state.oauth_email = None
+                                    st.rerun()
                             else:
                                 st.error("❌ Gagal menyimpan PIN! Silakan coba lagi.")
                 else:
-                    # User sudah punya PIN, tampilkan input PIN
-                    st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
-                    st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Masukkan PIN</h4>", unsafe_allow_html=True)
+                    # User sudah terdaftar. Cek status kunci dan admin
+                    is_locked = auth_details["is_locked"]
+                    is_admin = auth_details["is_admin"]
+                    saved_pin = auth_details["pin"]
                     
-                    input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
-                    
-                    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
-                    col_btn1, col_btn2 = st.columns(2)
-                    with col_btn1:
-                        btn_batal = st.button("⬅ Batal", use_container_width=True)
-                    with col_btn2:
-                        btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
-                    
-                    if btn_batal:
-                        st.session_state.oauth_email = None
-                        st.rerun()
-                    
-                    if btn_buka or (input_pin and len(input_pin) == 6):
-                        if input_pin == saved_pin:
-                            st.session_state.logged_in = True
-                            st.session_state.user_email = email
+                    if is_locked:
+                        st.error("❌ Akun Anda telah terkunci/dinonaktifkan oleh Admin.")
+                        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                        if st.button("⬅ Kembali", use_container_width=True):
                             st.session_state.oauth_email = None
                             st.rerun()
-                        else:
-                            st.error("❌ PIN Salah!")
+                    elif not is_admin:
+                        st.warning("⚠️ Akun Anda belum disetujui sebagai Administrator.")
+                        st.info("ℹ️ Silakan hubungi Administrator utama untuk memberikan akses ke dashboard.")
+                        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                        if st.button("⬅ Kembali", use_container_width=True):
+                            st.session_state.oauth_email = None
+                            st.rerun()
+                    else:
+                        # User sudah punya PIN, status aktif & admin, tampilkan input PIN
+                        st.markdown(f"<p style='text-align:center; color:#94a3b8; font-size:0.9rem; margin-bottom: 0.5rem;'>Masuk sebagai: <b>{email}</b></p>", unsafe_allow_html=True)
+                        st.markdown("<h4 style='text-align:center; color:white; margin-top: 0.5rem; margin-bottom: 1rem;'>Masukkan PIN</h4>", unsafe_allow_html=True)
+                        
+                        input_pin = st.text_input("PIN 6 Digit", type="password", placeholder="••••••", max_chars=6, label_visibility="collapsed")
+                        
+                        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                        col_btn1, col_btn2 = st.columns(2)
+                        with col_btn1:
+                            btn_batal = st.button("⬅ Batal", use_container_width=True)
+                        with col_btn2:
+                            btn_buka = st.button("🔓 Buka Kunci", use_container_width=True)
+                        
+                        if btn_batal:
+                            st.session_state.oauth_email = None
+                            st.rerun()
+                        
+                        if btn_buka or (input_pin and len(input_pin) == 6):
+                            if input_pin == saved_pin:
+                                st.session_state.logged_in = True
+                                st.session_state.user_email = email
+                                st.session_state.oauth_email = None
+                                st.rerun()
+                            else:
+                                st.error("❌ PIN Salah!")
                                 
         st.markdown("<p style='text-align:center;color:#475569;font-size:0.75rem;margin-top:2rem'>© 2026 EduPredict AI • v2.0</p>", unsafe_allow_html=True)
 
@@ -422,3 +639,5 @@ else:
         page_batch(engine, save_prediction_to_db)
     elif pg == "Riwayat Prediksi":
         page_history(load_prediction_history, DB_AVAILABLE)
+    elif pg == "Manajemen Pengguna":
+        page_user_management(get_all_users, update_user_auth)
